@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="AI-Powered Phishing URL and Fake QR Code Detection System using Machine Learning.">
+    <title>PhishGuard - Phishing URL & Fake QR Code Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- ========================================================= -->
+    <!-- HEADER & NAVIGATION -->
+    <!-- ========================================================= -->
+    <header>
+        <div class="container navbar">
+            <a href="/" class="logo">
+                <span class="logo-icon">🛡️</span>
+                <span>Phish</span>Guard
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="#scanner">Scanner</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#architecture">ML Model</a></li>
+            </ul>
+
+            <div class="system-status">
+                <span class="status-dot"></span>
+                ML Engine Active
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================================= -->
+    <!-- HERO SECTION -->
+    <!-- ========================================================= -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <span>⚡ Machine Learning Powered Security</span>
+            </div>
+            <h1>Phishing URL & <span>Fake QR Code</span> Detection System</h1>
+        </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- SCANNER CONTAINER (TABS FOR URL & QR) -->
+    <!-- ========================================================= -->
+    <main class="container" id="scanner">
+        <div class="scanner-container">
+
+            <div class="scanner-tabs">
+                <button type="button" class="tab-btn {% if active_tab != 'qr' %}active{% endif %}" data-tab="tab-url">
+                    <span>🔗</span> URL Scanner
+                </button>
+                <button type="button" class="tab-btn {% if active_tab == 'qr' %}active{% endif %}" data-tab="tab-qr">
+                    <span>📱</span> QR Code Scanner
+                </button>
+            </div>
+
+            <!-- ===================================== -->
+            <!-- TAB 1: URL SCANNER -->
+            <!-- ===================================== -->
+            <div id="tab-url" class="tab-content {% if active_tab != 'qr' %}active{% endif %}">
+                <form action="/" method="POST">
+                    <div class="input-group">
+                        <div class="input-label">
+                            <label for="url-input">Enter Target URL</label>
+                        </div>
+                        <input type="text" id="url-input" name="url" class="input-box"
+                            placeholder="https://example.com/login"
+                            value="{{ result.url if result and result.url else '' }}" required autocomplete="off">
+
+                        <div class="quick-samples">
+                            <span>Quick Test:</span>
+                            <span class="sample-pill" data-url="https://www.google.com">google.com</span>
+                            <span class="sample-pill" data-url="https://www.wikipedia.org">wikipedia.org</span>
+                            <span class="sample-pill"
+                                data-url="http://192.168.1.1/login/verify">http://192.168.1.1/login</span>
+                            <span class="sample-pill"
+                                data-url="http://paypal-security-update-account.xyz/login">paypal-security-update.xyz</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <span>🔍</span> Scan URL with ML Model
+                    </button>
+                </form>
+
+                <!-- URL SCAN RESULT -->
+                {% if result %}
+                <div class="result-section">
+                    {% if result.result == 'LEGITIMATE' %}
+                    <div class="result-banner legitimate">
+                        <div class="result-badge">
+                            <span>✅</span> LEGITIMATE (SAFE)
+                        </div>
+                        <div class="confidence-box">
+                            <div class="confidence-label">Hybrid Confidence</div>
+                            <div class="confidence-score" style="color: #34D399;">{{ result.confidence_percent }}</div>
+                        </div>
+                    </div>
+                    {% elif result.result == 'SUSPICIOUS' %}
+                    <div class="result-banner suspicious">
+                        <div class="result-badge">
+                            <span>⚠️</span> SUSPICIOUS — USE CAUTION
+                        </div>
+                        <div class="confidence-box">
+                            <div class="confidence-label">Risk Score</div>
+                            <div class="confidence-score" style="color: #FBBF24;">{{ result.confidence_percent }}</div>
+                        </div>
+                    </div>
+                    {% elif result.result == 'PHISHING' %}
+                    <div class="result-banner phishing">
+                        <div class="result-badge">
+                            {% if result.risk_level == 'CRITICAL' %}
+                            <span>🚨</span> PHISHING — CRITICAL RISK
+                            {% else %}
+                            <span>🚨</span> PHISHING DETECTED
+                            {% endif %}
+                        </div>
+                        <div class="confidence-box">
+                            <div class="confidence-label">Risk Confidence</div>
+                            <div class="confidence-score" style="color: #F87171;">{{ result.confidence_percent }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="result-banner error">
+                        <div class="result-badge">
+                            <span>⚠️</span> {{ result.result }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="result-body">
+                        <div class="analyzed-url-box">
+                            <span class="url-text">{{ result.url }}</span>
+                            <button type="button" class="sample-pill"
+                                onclick="copyUrlText('{{ result.url }}')">Copy</button>
+                        </div>
+
+                        <div class="security-advice">
+                            <span>ℹ️</span>
+                            <span>{{ result.message }}</span>
+                        </div>
+
+                        {% if result.risk_factors and result.risk_factors|length > 0 %}
+                        <div class="risk-factors-box">
+                            <div class="risk-factors-title">🔍 Triggered Risk Signals</div>
+                            <ul class="risk-factors-list">
+                                {% for factor in result.risk_factors %}
+                                <li>⚠ {{ factor }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        {% if result.features %}
+                        <details class="features-accordion">
+                            <summary>
+                                <span>📊 View 30 Extracted ML Features</span>
+                                <span>▼</span>
+                            </summary>
+                            <div class="features-grid">
+                                {% for fname, fval in result.features.items() %}
+                                <div class="feature-pill">
+                                    <span class="name">{{ fname }}</span>
+                                    <span class="val">{{ fval }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ===================================== -->
+            <!-- TAB 2: QR CODE SCANNER -->
+            <!-- ===================================== -->
+            <div id="tab-qr" class="tab-content {% if active_tab == 'qr' %}active{% endif %}">
+                <form action="/scan-qr" method="POST" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <div class="input-label">
+                            <label>Upload QR Code Image</label>
+                            <span>Supports PNG, JPG, JPEG, WEBP</span>
+                        </div>
+
+                        <div class="dropzone" id="qr-dropzone">
+                            <input type="file" id="qr-file-input" name="qr_image"
+                                accept="image/png,image/jpeg,image/jpg,image/webp" required>
+                            <div class="dropzone-icon">📷</div>
+                            <div class="dropzone-text">Click to browse or drag & drop QR code image</div>
+                            <div class="dropzone-hint">Image will be scanned with OpenCV & analyzed with Random Forest
+                            </div>
+                        </div>
+
+                        <div id="file-preview" class="file-preview">
+                            <span id="file-name">No file selected</span>
+                            <span style="color: #34D399;">✓ Ready</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit">
+                        <span>📱</span> Decode & Inspect QR Code
+                    </button>
+                </form>
+
+                <!-- QR SCAN RESULT -->
+                {% if qr_result %}
+                <div class="result-section">
+                    {% if qr_result.success %}
+                    {% set phish = qr_result.phishing %}
+                    {% if phish.result == 'LEGITIMATE' %}
+                    <div class="result-banner legitimate">
+                        <div class="result-badge">
+                            <span>✅</span> QR URL IS LEGITIMATE
+                        </div>
+                        <div class="confidence-box">
+                            <div class="confidence-label">Confidence</div>
+                            <div class="confidence-score" style="color: #34D399;">{{ phish.confidence_percent }}</div>
+                        </div>
+                    </div>
+                    {% elif phish.result == 'PHISHING' %}
+                    <div class="result-banner phishing">
+                        <div class="result-badge">
+                            <span>🚨</span> FAKE / PHISHING QR DETECTED
+                        </div>
+                        <div class="confidence-box">
+                            <div class="confidence-label">Risk Confidence</div>
+                            <div class="confidence-score" style="color: #F87171;">{{ phish.confidence_percent }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="result-banner error">
+                        <div class="result-badge">
+                            <span>ℹ️</span> QR Payload Extracted
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="result-body">
+                        <div class="input-label" style="margin-top: 4px;">
+                            <span>Decoded Payload Content:</span>
+                        </div>
+                        <div class="analyzed-url-box">
+                            <span class="url-text">{{ qr_result.data }}</span>
+                            <button type="button" class="sample-pill"
+                                onclick="copyUrlText('{{ qr_result.data }}')">Copy</button>
+                        </div>
+
+                        <div class="security-advice">
+                            <span>ℹ️</span>
+                            <span>{{ phish.message }}</span>
+                        </div>
+
+                        {% if phish.features %}
+                        <details class="features-accordion">
+                            <summary>
+                                <span>📊 View 21 Extracted Features From QR URL</span>
+                                <span>▼</span>
+                            </summary>
+                            <div class="features-grid">
+                                {% for fname, fval in phish.features.items() %}
+                                <div class="feature-pill">
+                                    <span class="name">{{ fname }}</span>
+                                    <span class="val">{{ fval }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </div>
+
+                    {% else %}
+                    <div class="result-banner error">
+                        <div class="result-badge">
+                            <span>⚠️</span> QR Scan Failed
+                        </div>
+                    </div>
+                    <div class="result-body">
+                        <div class="security-advice">
+                            <span>❌</span>
+                            <span>{{ qr_result.message }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </main>
+
+
+    <!-- ========================================================= -->
+    <!-- FOOTER -->
+    <!-- ========================================================= -->
+    <footer>
+        <div class="container">
+            <p>
+                <strong>Phishing URL and Fake QR Code Detection System</strong>
+            </p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>
